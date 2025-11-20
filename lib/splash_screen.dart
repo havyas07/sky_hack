@@ -109,6 +109,7 @@ class _SplashScreenState extends State<SplashScreen>
                   children: [
                     Text(
                       'NEBULA HORIZON',
+                      textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 48,
                         fontWeight: FontWeight.w900,
@@ -127,6 +128,7 @@ class _SplashScreenState extends State<SplashScreen>
                       opacity: _flickerAnimation.value,
                       child: const Text(
                         'NEBULA HORIZON',
+                        textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 48,
                           fontWeight: FontWeight.w900,

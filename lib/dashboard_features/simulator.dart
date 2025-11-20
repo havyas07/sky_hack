@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:sky_hack/constants.dart';
 import 'dart:async';
+import 'dart:math';
 
 class SimulatorScreen extends StatefulWidget {
   const SimulatorScreen({super.key});
@@ -9,8 +11,10 @@ class SimulatorScreen extends StatefulWidget {
   State<SimulatorScreen> createState() => _SimulatorScreenState();
 }
 
-class _SimulatorScreenState extends State<SimulatorScreen> {
-  // Using a map to hold the state of all systems
+class _SimulatorScreenState extends State<SimulatorScreen>
+    with TickerProviderStateMixin {
+  late AnimationController _shakeController;
+
   final Map<String, bool> _systems = {
     'Master Power': false,
     'Life Support': false,
@@ -22,20 +26,44 @@ class _SimulatorScreenState extends State<SimulatorScreen> {
   String _mainStatus = "Offline. Engage Master Power.";
   bool _launched = false;
 
-  // Check if all systems are go for launch
-  bool get _allSystemsGo {
-    return _systems.values.every((status) => status == true);
+  bool get _allSystemsGo => _systems.values.every((status) => status == true);
+
+  @override
+  void initState() {
+    super.initState();
+
+    // 🟢 FORCE LANDSCAPE ORIENTATION
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+
+    _shakeController = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+  }
+
+  @override
+  void dispose() {
+    _shakeController.dispose();
+
+    // 🔵 BACK TO NORMAL ORIENTATION WHEN EXITING SCREEN
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+
+    super.dispose();
   }
 
   void _toggleSystem(String systemName) {
     if (_launched) return;
 
     setState(() {
-      // Allow toggling only in order
       List<String> systemOrder = _systems.keys.toList();
       int currentIndex = systemOrder.indexOf(systemName);
 
-      // Allow turning on the first system, or any system if the previous one is on
       if (currentIndex == 0 || _systems[systemOrder[currentIndex - 1]]!) {
         _systems[systemName] = !_systems[systemName]!;
         _updateStatus();
@@ -51,7 +79,6 @@ class _SimulatorScreenState extends State<SimulatorScreen> {
       return;
     }
 
-    // Find the next offline system
     for (var entry in _systems.entries) {
       if (!entry.value) {
         _mainStatus = "Awaiting input: ${entry.key}";
@@ -61,9 +88,28 @@ class _SimulatorScreenState extends State<SimulatorScreen> {
   }
 
   void _launch() {
+    if (!_allSystemsGo || _launched) return;
+
     setState(() {
       _launched = true;
-      _mainStatus = "LIFTOFF! We have a liftoff!";
+      _mainStatus = "Launch sequence initiated.";
+    });
+
+    int countdown = 3;
+    Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (countdown > 0) {
+        setState(() => _mainStatus = "T-${countdown--}...");
+      } else {
+        timer.cancel();
+        setState(() => _mainStatus = "LIFTOFF!");
+        _shakeController.repeat();
+        Future.delayed(const Duration(milliseconds: 800), () {
+          if (mounted) {
+            _shakeController.reset();
+            setState(() => _mainStatus = "Ascent successful. Reaching orbit.");
+          }
+        });
+      }
     });
   }
 
@@ -71,7 +117,7 @@ class _SimulatorScreenState extends State<SimulatorScreen> {
     setState(() {
       _systems.updateAll((key, value) => false);
       _launched = false;
-      _updateStatus();
+      _mainStatus = "Offline. Engage Master Power.";
     });
   }
 
@@ -79,86 +125,131 @@ class _SimulatorScreenState extends State<SimulatorScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kDeepSpace,
-      appBar: AppBar(
-        title: const Text('COCKPIT SIMULATOR'),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            _buildMainDisplay(),
-            const SizedBox(height: 24),
-            _buildControlGrid(),
-            const SizedBox(height: 24),
-            _buildLaunchControls(),
-          ],
+      appBar: AppBar(title: const Text('COCKPIT SIMULATOR')),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: AnimatedBuilder(
+                animation: _shakeController,
+                builder: (context, child) {
+                  final offset = sin(pi * _shakeController.value * 10) * 4;
+                  return Transform.translate(
+                      offset: Offset(offset, 0), child: child);
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Column(
+                    children: [
+                      _buildMainDisplay(),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: constraints.maxHeight * 0.75,
+                        child: Row(
+                          children: [
+                            _buildSidePanel(isLeft: true),
+                            _buildCenterPanel(),
+                            _buildSidePanel(isLeft: false),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _buildMainDisplay() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.5),
-        border: Border.all(color: kNeonGreen),
-        borderRadius: BorderRadius.circular(8),
+  Widget _buildMainDisplay() => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.black.withOpacity(0.5),
+      border: Border.all(color: kNeonGreen),
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Text(
+      _mainStatus,
+      textAlign: TextAlign.center,
+      style: const TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: kNeonGreen,
+        letterSpacing: 1.2,
       ),
-      child: Text(
-        _mainStatus,
-        textAlign: TextAlign.center,
-        style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: kNeonGreen,
-          letterSpacing: 1.2,
-        ),
+    ),
+  );
+
+  Widget _buildSidePanel({required bool isLeft}) {
+    final keys = isLeft
+        ? _systems.keys.take(2).toList()
+        : _systems.keys.skip(3).toList();
+    return Expanded(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: keys.map((key) => _buildSystemControl(key)).toList(),
       ),
     );
   }
 
-  Widget _buildControlGrid() {
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 16,
-      mainAxisSpacing: 16,
-      childAspectRatio: 2.0, // FIX: Made taller to prevent overflow
-      children: _systems.keys.map((systemName) {
-        return _buildSwitchControl(
-          label: systemName,
-          value: _systems[systemName]!,
-          onChanged: (value) => _toggleSystem(systemName),
-        );
-      }).toList(),
+  Widget _buildCenterPanel() {
+    return Expanded(
+      flex: 2,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _buildSystemControl(_systems.keys.elementAt(2)),
+          _buildLaunchControls(),
+        ],
+      ),
     );
   }
 
-  Widget _buildSwitchControl(
-      {required String label, required bool value, required Function(bool) onChanged}) {
+  Widget _buildSystemControl(String systemName) {
+    final isActive = _systems[systemName]!;
     return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
         color: kTransparentWhite,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: kNeonBlue.withOpacity(0.5)),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
         children: [
-          Flexible( // FIX: Allows text to wrap
-            child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(
+            systemName,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+            textAlign: TextAlign.center,
           ),
-          Switch(
-            value: value,
-            onChanged: _launched ? null : onChanged,
-            activeColor: kNeonGreen,
-            activeTrackColor: kNeonGreen.withOpacity(0.5),
-            inactiveThumbColor: Colors.grey,
-            inactiveTrackColor: Colors.grey.withOpacity(0.3),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              Container(
+                width: 15,
+                height: 15,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isActive ? kNeonGreen : Colors.red[900],
+                  boxShadow: [
+                    BoxShadow(
+                        color: isActive ? kNeonGreen : Colors.red[900]!,
+                        blurRadius: 6)
+                  ],
+                ),
+              ),
+              Switch(
+                value: isActive,
+                onChanged: _launched ? null : (_) => _toggleSystem(systemName),
+                activeColor: kNeonGreen,
+                activeTrackColor: kNeonGreen.withOpacity(0.5),
+              ),
+            ],
           ),
         ],
       ),
@@ -171,26 +262,23 @@ class _SimulatorScreenState extends State<SimulatorScreen> {
         ElevatedButton(
           onPressed: _allSystemsGo && !_launched ? _launch : null,
           style: ElevatedButton.styleFrom(
-            backgroundColor: _allSystemsGo ? kNeonGreen : Colors.grey[800],
-            minimumSize: const Size(double.infinity, 60),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-              side: _allSystemsGo
-                  ? const BorderSide(color: kNeonGreen, width: 2)
-                  : BorderSide.none,
-            ),
+            backgroundColor:
+            _allSystemsGo && !_launched ? kNeonGreen : Colors.grey[800],
+            padding:
+            const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           ),
           child: const Text(
             'LAUNCH',
-            style: TextStyle(fontSize: 24, letterSpacing: 4, fontWeight: FontWeight.bold),
+            style: TextStyle(
+                fontSize: 20, letterSpacing: 3, fontWeight: FontWeight.bold),
           ),
         ),
-        const SizedBox(height: 16),
-        TextButton.icon(
+        const SizedBox(height: 8),
+        IconButton(
           onPressed: _resetSimulator,
-          icon: const Icon(Icons.refresh, size: 20),
-          label: const Text('Reset Simulator'),
-          style: TextButton.styleFrom(foregroundColor: kNeonBlue),
+          icon: const Icon(Icons.refresh),
+          color: kNeonBlue,
+          iconSize: 28,
         ),
       ],
     );

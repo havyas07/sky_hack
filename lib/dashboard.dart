@@ -7,6 +7,7 @@ import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import 'package:sky_hack/dashboard_features/fitness.dart';
 import 'package:sky_hack/dashboard_features/simulator.dart';
+import 'package:sky_hack/dashboard_features/quizes.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -76,7 +77,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     final List<Map<String, dynamic>> items = [
       {'icon': Icons.vrpano_outlined, 'label': 'AR Learning', 'screen': null},
-      {'icon': Icons.quiz_outlined, 'label': 'Space Quizzes', 'screen': null},
+      {
+        'icon': Icons.quiz_outlined,
+        'label': 'Space Quizzes',
+        'screen': const QuizScreen()
+      },
       {
         'icon': Icons.fitness_center_outlined,
         'label': 'Astronaut Fitness',

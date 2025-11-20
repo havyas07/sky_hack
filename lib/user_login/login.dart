@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sky_hack/dashboard.dart';
+import 'package:sky_hack/user_login/org_login.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:sky_hack/constants.dart';
 
@@ -89,16 +90,17 @@ class _LoginScreenState extends State<LoginScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              const Icon(Icons.satellite_alt_outlined, size: 80, color: kNeonBlue),
+              const Icon(Icons.satellite_alt_outlined,
+                  size: 80, color: kNeonBlue),
               const SizedBox(height: 10),
               Text(
                 _isSigningUp ? 'ASTRONAUT REGISTRY' : 'MISSION CONTROL LOGIN',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontSize: 24, 
-                  letterSpacing: 2,
-                  color: kAquaGlow,
-                  ), 
+                      fontSize: 24,
+                      letterSpacing: 2,
+                      color: kAquaGlow,
+                    ),
               ),
               const SizedBox(height: 40),
               TextField(
@@ -142,6 +144,29 @@ class _LoginScreenState extends State<LoginScreen> {
                       ? 'Already have an account? Sign In'
                       : 'New user? Request Access (Sign Up)',
                   style: const TextStyle(color: kNeonBlue, fontSize: 14),
+                ),
+              ),
+              const SizedBox(height: 20),
+              OutlinedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const OrgLoginScreen()),
+                  );
+                },
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: kNeonGreen, width: 1),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'Organization Login',
+                  style: TextStyle(
+                      color: kNeonGreen,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold),
                 ),
               ),
             ],
