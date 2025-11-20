@@ -39,6 +39,7 @@ dependencies:
   video_player: ^2.8.6
   chewie: ^1.7.5
   http: ^1.2.1
+  flutter_joystick: ^0.2.2
 
 dev_dependencies:
   flutter_test:

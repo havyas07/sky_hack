@@ -96,7 +96,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       {
         'icon': Icons.rocket_launch_outlined,
         'label': 'Rocket Simulator',
-        'screen': const SimulatorScreen()
+        'screen': const SimpleRocketSimulation()
       },
     ];
 
